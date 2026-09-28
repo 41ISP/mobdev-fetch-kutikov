@@ -14,17 +14,33 @@ const Search = () => {
 
     useEffect(() => {
         const loadBooks = async () => {
-            setIsLoading(true)
-            const res = await fetch(
-                "https://openlibrary.org/search.json" +
-                    "?q=" +
-                    queryParam +
-                    "&limit=20",
-            )
-            const data = await res.json()
-            console.log(data)
-            setBooks(data.docs)
-            setIsLoading(false)
+            try {
+                setIsLoading(true)
+                setError(null)
+                const res = await fetch(
+                    "https://openlibrary.org/search.json" +
+                        "?q=" +
+                        queryParam +
+                        "&limit=20",
+                )
+
+                if (!res.ok) {
+                    const errorData = await res.json()
+
+                    throw new Error(
+                        errorData.detail[0].msg || "Что-то пошло не так",
+                    )
+                }
+
+                const data = await res.json()
+
+                setBooks(data.docs)
+            } catch (error) {
+                console.error(error)
+                setError(error.message)
+            } finally {
+                setIsLoading(false)
+            }
         }
         loadBooks()
     }, [queryParam])
@@ -66,11 +82,14 @@ const Search = () => {
                 </span>
             </div>
             {isLoading && <Loader />}
+            {!isLoading && error && <p>{error}</p>}
             {!isLoading && !error && (
                 <div className="book-grid" id="results">
                     {books.map((e) => {
-                        const {key, ...props} = e
-                        return <BookCard {...props} bookKey={e.key} key={e.key} />
+                        const { key, ...props } = e
+                        return (
+                            <BookCard {...props} bookKey={e.key} key={e.key} />
+                        )
                     })}
                 </div>
             )}
